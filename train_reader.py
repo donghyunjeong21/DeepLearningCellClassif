@@ -46,7 +46,6 @@ def dimension_compat(im):
 # Takes either the brightfield channel or the segmentation channel and segments.
 # Then creates a list of square images of size diameter*2 containing pixel values for each cell
 # Pixels in each segment that is not part of that cell is set to 0
-
 def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter = 20):
     masks = []
     model = models.Cellpose(gpu=use_GPU, model_type = 'cyto')
@@ -89,7 +88,6 @@ def add_padding(im, d):
 
 # Generates labels. If threshold = -1, then it gives mean intensity in truth channel.
 # If threshold is non- -1, then it labels segment as 0 if under threshold, 1 if over
-
 def generate_labels(segment_fl, threshold = -1):
     label = np.zeros(len(segment_fl))
     for i in range(len(segment_fl)):
@@ -99,11 +97,10 @@ def generate_labels(segment_fl, threshold = -1):
         label[label >= threshold] = 1
     return label
 
-# A code to test. Should be deleted in the final version
-def testrun():
-    img_dir = pathlib.Path(__file__).parent.resolve().__str__()
-    print(type(img_dir))
-    bf_imgs, fl_imgs, sg_imgs = generate_imgs(img_dir, input_ch = 1, truth_ch = 0)
-    segment_bf, segment_fl = generate_segments(bf_imgs, fl_imgs, use_GPU = True, diameter = 20)
-    label = generate_labels(segment_fl, threshold = 2000)
+def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, threshold):
+    if img_dir == 'current':
+        img_dir = pathlib.Path(__file__).parent.resolve()
+    bf_imgs, fl_imgs, sg_imgs = generate_imgs(img_dir, file_type = file_type, input_ch = input_ch, truth_ch = truth_ch, segmt_ch = segmt_ch)
+    segment_bf, segment_fl = generate_segments(bf_imgs, fl_imgs, use_GPU = use_GPU, diameter = diameter)
+    label = generate_labels(segment_fl, threshold = threshold)
     return segment_bf, label
