@@ -1,4 +1,4 @@
-import train_reader
+import segment
 import generate_model
 import argparse
 import os
@@ -19,7 +19,7 @@ args = parser.parse_args()
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 def main(args):
-    data_x, data_y = train_reader.run_pipeline(args.path, args.file_type, args.input, args.truth, args.sgmt, args.use_GPU, args.diameter, args.threshold)
+    data_x, data_y = segment.run_pipeline(args.path, args.file_type, args.input, args.truth, args.sgmt, args.use_GPU, args.diameter, args.threshold)
     x = generate_model.init_model(args.diameter*2, args.threshold)
     generate_model.fit_model(x, data_x, data_y, args.diameter*2)
     print(args)
