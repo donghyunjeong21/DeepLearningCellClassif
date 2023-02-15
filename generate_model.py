@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 from tensorflow.keras import datasets, layers, models
 from sklearn.model_selection import train_test_split
 from keras.regularizers import l2
@@ -34,9 +34,11 @@ def init_model(input_size, threshold):
 
     return model
 
-def fit_model(model, data_x, data_y, input_size):
+def fit_model(model, data_x, data_y, input_size, modelName):
     train_x, test_x, train_y, test_y = data_org(data_x, data_y, input_size)
     history = model.fit(train_x, train_y, batch_size = 100, epochs = 20, shuffle = True, validation_data = (test_x, test_y))
+    model.save(modelName + '.h5')
+    print('Model has been saved in the supplied directory as ' + modelName + '.h5')
 
 def data_org(data_x, data_y, size_selection):
     data_x = np.stack(data_x,axis=0)
