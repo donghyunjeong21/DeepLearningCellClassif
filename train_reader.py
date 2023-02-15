@@ -38,7 +38,7 @@ def generate_imgs(path_str, file_type = '.tif', input_ch = 0, truth_ch = 1, segm
 def dimension_compat(im):
     shape = im.shape
     if shape[0] < shape[2]:
-        print('Your video looks like channel is listed first. Transposing...')
+        print('Your image looks like channel is listed first. Transposing...')
         im = np.transpose(im, axes = (1,2,0))
     return im
 
@@ -74,7 +74,7 @@ def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter 
 
             segment_bf.append(np.multiply(bf_img[xmin:xmin+diameter*2,ymin:ymin+diameter*2], bin_mask[xmin:xmin+diameter*2,ymin:ymin+diameter*2]))
             segment_fl.append(np.multiply(fl_img[xmin:xmin+diameter*2,ymin:ymin+diameter*2], bin_mask[xmin:xmin+diameter*2,ymin:ymin+diameter*2]))
-    return segment_bf, segment_fl
+    return segment_bf, segment_fl, len(segment_bf)
 
 # A function to add padding to edges to make sure all output is of same dimension
 def add_padding(im, d):
@@ -101,6 +101,9 @@ def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diam
     if img_dir == 'current':
         img_dir = pathlib.Path(__file__).parent.resolve()
     bf_imgs, fl_imgs, sg_imgs = generate_imgs(img_dir, file_type = file_type, input_ch = input_ch, truth_ch = truth_ch, segmt_ch = segmt_ch)
-    segment_bf, segment_fl = generate_segments(bf_imgs, fl_imgs, use_GPU = use_GPU, diameter = diameter)
+    print('Imported the images. Segmenting them...')
+    segment_bf, segment_fl, numcell = generate_segments(bf_imgs, fl_imgs, use_GPU = use_GPU, diameter = diameter)
+    print('Segmented the images. Identified '+ str(numcell) + ' cells across all the supplied images. Generating labels...')
     label = generate_labels(segment_fl, threshold = threshold)
+    print('Generated labels. Training model now...')
     return segment_bf, label
