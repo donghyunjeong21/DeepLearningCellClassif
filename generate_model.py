@@ -1,15 +1,17 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from skimage.io import imread
-
-from random import randrange
-from scipy.ndimage import gaussian_filter
-import tensorflow as tf
+import numpy as np 
 from tensorflow.keras import datasets, layers, models
 from sklearn.model_selection import train_test_split
 from keras.regularizers import l2
 
-def init_model(input_size):
+def init_model(input_size, threshold):
+    if threshold == -1:
+        loss_type = 'poisson'
+        metric_type = 'mean_squared_error'
+        fin_activation = 'relu'
+    else:
+        loss_type = 'binary_crossentropy'
+        metric_type = 'accuracy'
+        fin_activation = 'sigmoid'
     model = models.Sequential()
     model.add(layers.InputLayer(input_shape=(input_size, input_size, 1)))
     model.add(layers.Conv2D(128, kernel_size = (2,2), activation='relu'))
@@ -26,9 +28,9 @@ def init_model(input_size):
     model.add(layers.Dropout(0.2))
     model.add(layers.Dense(16, activation = 'relu', kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
     model.add(layers.Dropout(0.2))
-    model.add(layers.Dense(1, activation = 'sigmoid'))
+    model.add(layers.Dense(1, activation = fin_activation))
 
-    model.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['binary_accuracy'])
+    model.compile(optimizer = 'adam', loss = loss_type, metrics = [metric_type])
 
     return model
 
