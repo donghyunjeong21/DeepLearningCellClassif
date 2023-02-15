@@ -34,7 +34,7 @@ def init_model(input_size):
 
 def fit_model(model, data_x, data_y, input_size):
     train_x, test_x, train_y, test_y = data_org(data_x, data_y, input_size)
-    history = model.fit(train_x, train_y, batch_size = 10, epochs = 5, shuffle = True, validation_data = (test_x, test_y))
+    history = model.fit(train_x, train_y, batch_size = 100, epochs = 20, shuffle = True, validation_data = (test_x, test_y))
 
 def data_org(data_x, data_y, size_selection):
     data_x = np.stack(data_x,axis=0)
