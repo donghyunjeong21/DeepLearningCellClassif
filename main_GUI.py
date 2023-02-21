@@ -4,12 +4,14 @@ import segment
 import generate_model
 import argparse
 import os
+from datetime import datetime
+import numpy as np
 
 class mainWindow:
     def __init__(self, win):
-        intro = 'Hi. This is the Deep Learning tool for studying cell morphology'
+        intro = 'This is the Deep Learning tool for studying cell morphology'
 
-        self.T = Text()
+        self.T = Text(width = 57, height = 10)
         self.T.place(x=20, y=25)
         self.T.insert(END,intro)
         self.settings = {'img_path':'current', 'type':'.tif', 'model':'current'}
@@ -43,7 +45,10 @@ class mainWindow:
         self.model_lb.configure(text="Selected Model: "+filename)
         self.settings['model'] = filename
     def predict(self):
-        print('placeholder')
+        meta_file = open(self.settings['model'][:-3] + '_metadata.txt', 'r')
+        diam = int(meta_file.readline())
+        preproc = int(meta_file.readline())
+        print(diam, preproc)
 
     def open_train(self):
         train_win = Toplevel()
@@ -51,9 +56,13 @@ class mainWindow:
         train_win.title('Train a New Model')
         train_win.geometry("700x400+10+10")
 
+# class prediction_window:
+#     def __init__(self, wind):
+#         self.
+
 class training_window:
     def __init__(self, wind):
-        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':20, 'threshold':-1,'modelName':'untitled'}
+        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':20, 'threshold':-1,'preproc':0,'modelName':'untitled'}
         self.explr_btn = Button(wind, text = "Browse Directory", command = self.browseFiles)
         self.explr_btn.place(x=100, y=25)
         self.explr_lbl = Label(wind, text = '/')
@@ -94,6 +103,11 @@ class training_window:
         self.thrsh_ent = Entry(wind, width = 8)
         self.thrsh_ent.place(x=200, y=200)
 
+        self.prepr_lbl = Label(wind, text = 'Preprocessor type')
+        self.prepr_lbl.place(x=20, y=225)
+        self.prepr_ent = Entry(wind, width = 3)
+        self.prepr_ent.place(x=200, y=225)
+
         self.model_lbl = Label(wind, text = 'Name for trained model?')
         self.model_lbl.place(x=20, y=250)
         self.model_ent = Entry(wind)
@@ -103,10 +117,8 @@ class training_window:
         self.train_btn.place(x=200, y=300)
         self.exit_btn = Button(wind, text='Exit', command=wind.destroy)
         self.exit_btn.place(x=500, y=300)
-        # self.b2=Button(win, text='Subtract')
-        # self.b2.bind('<Button-1>', self.sub)
-        # self.b1.place(x=100, y=150)
-        # self.b2.place(x=200, y=150)
+
+
     def browseFiles(self):
         filename = filedialog.askdirectory(initialdir = "/",
                                           title = "Select a Directory",)
@@ -122,26 +134,31 @@ class training_window:
         self.settings['useGPU'] = bool(self.ck1.get())
         self.settings['diam'] = int(self.diam_ent.get())
         self.settings['threshold'] = int(self.thrsh_ent.get())
+        self.settings['preproc'] = int(self.prepr_ent.get())
         self.settings['modelName'] = str(self.model_ent.get())
     def open_segmt(self):
         self.update_param()
-        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['threshold'])
+        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['threshold'], self.settings['preproc'])
         cellCount = data_y.shape[0]
+        pos_cellcount = 0
+        if self.settings['threshold'] != -1:
+            pos_cellcount = np.count_nonzero(data_y)
         tl = Toplevel()
-        pg_window = progresswin(tl, cellCount, data_x, data_y, self.settings['diam'], self.settings['threshold'], self.settings['modelName'])
+        pg_window = progresswin(tl, cellCount, pos_cellcount, data_x, data_y, self.settings)
         tl.title('Training model')
         tl.geometry('300x300')
 
 
 class progresswin:
-    def __init__(self, Topl, cellCount, data_x, data_y, diam, thres, modN):
+    def __init__(self, Topl, cellCount, pos_cellcount, data_x, data_y, settings):
         self.data_x = data_x
         self.data_y = data_y
-        self.diam = diam
-        self.thres = thres
-        self.modN = modN
-        self.label1 = Label(Topl, text = 'We identified '+str(cellCount) + ' cells. Do you wish to continue?')
+        self.settings = settings
+
+        self.label1 = Label(Topl, text = 'We identified '+str(cellCount) + ' cells.')
         self.label1.place(x=20, y=100)
+        self.label2 = Label(Topl, text = 'Of these,  '+str(pos_cellcount) + ' cells were positive.')
+        self.label2.place(x=20, y=125)
 
         self.cont_btn = Button(Topl, text='Continue', command=self.run)
         self.cont_btn.place(x=50, y=200)
@@ -150,8 +167,18 @@ class progresswin:
         self.exit_btn.place(x=200, y=200)
 
     def run(self):
-        x = generate_model.init_model(self.diam*2, self.thres)
-        generate_model.fit_model(x, self.data_x, self.data_y, self.diam*2, self.modN)
+        x = generate_model.init_model(self.settings['diam']*2, self.settings['threshold'])
+        generate_model.fit_model(x, self.data_x, self.data_y, self.settings['diam']*2, self.settings['modelName'])
+        file = open(self.settings['modelName'] + '_metadata.txt', 'w')
+        file.write(str(self.settings['diam']) + '\n')
+        file.write(str(self.settings['preproc']) + '\n')
+        file.write(str(self.settings['threshold']) + '\n')
+        file.write(str(self.settings['input']) + '\n')
+        file.write(str(self.settings['truth']) + '\n')
+        file.write(str(self.settings['segmt']) + '\n')
+        file.write(str(self.settings['useGPU']) + '\n')
+        file.write(datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n')
+
 
 
 
