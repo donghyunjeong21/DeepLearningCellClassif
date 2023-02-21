@@ -42,6 +42,10 @@ def dimension_compat(im):
         im = np.transpose(im, axes = (1,2,0))
     return im
 
+def preprocessing(imgs, type_of_preprocess):
+    #Placeholder
+    return imgs
+
 # Generates segments based on Cellpose segmentation results
 # Takes either the brightfield channel or the segmentation channel and segments.
 # Then creates a list of square images of size diameter*2 containing pixel values for each cell
@@ -97,10 +101,11 @@ def generate_labels(segment_fl, threshold = -1):
         label[label >= threshold] = 1
     return label
 
-def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, threshold):
+def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, threshold, preproc):
     if img_dir == 'current':
         img_dir = pathlib.Path(__file__).parent.resolve()
     bf_imgs, fl_imgs, sg_imgs = generate_imgs(img_dir, file_type = file_type, input_ch = input_ch, truth_ch = truth_ch, segmt_ch = segmt_ch)
+    bf_imgs = preprocessing(bf_imgs, preproc)
     print('Imported the images. Segmenting them...')
     segment_bf, segment_fl, numcell = generate_segments(bf_imgs, fl_imgs, use_GPU = use_GPU, diameter = diameter)
     print('Segmented the images. Identified '+ str(numcell) + ' cells across all the supplied images. Generating labels...')
