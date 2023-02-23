@@ -2,10 +2,12 @@ from tkinter import *
 from tkinter import filedialog
 import segment
 import generate_model
-import argparse
+import predict
 import os
 from datetime import datetime
 import numpy as np
+import matplotlib.pyplot as plt
+from tifffile import imwrite
 
 class mainWindow:
     def __init__(self, win):
@@ -14,7 +16,7 @@ class mainWindow:
         self.T = Text(width = 57, height = 10)
         self.T.place(x=20, y=25)
         self.T.insert(END,intro)
-        self.settings = {'img_path':'current', 'type':'.tif', 'model':'current'}
+        self.settings = {'img_path':'current', 'type':'.tif', 'model':'current', 'input_ch':0, 'segmt_ch':1, 'useGPU':False}
         self.explr_bt = Button(win, text = "Browse Directory", command = self.browseDir)
         self.explr_bt.place(x=100, y=225)
         self.explr_lb = Label(win, text = '/')
@@ -26,14 +28,31 @@ class mainWindow:
         self.model_lb.place(x=250,y=250)
 
         self.ftype_lb = Label(win, text='File type')
-        self.ftype_lb.place(x=100, y=300)
+        self.ftype_lb.place(x=100, y=350)
         self.ftype_en = Entry()
-        self.ftype_en.place(x=200, y=300)
+        self.ftype_en.place(x=250, y=350)
+
+        self.input_lbl = Label(win, text='Input Channel')
+        self.input_lbl.place(x=100, y=275)
+        self.segmt_lbl = Label(win, text='Segment Channel')
+        self.segmt_lbl.place(x=100, y=300)
+
+        self.input_ent = Entry(win, width = 2)
+        self.input_ent.place(x=250, y=275)
+        self.segmt_ent = Entry(win, width = 2)
+        self.segmt_ent.place(x=250, y=300)
+
+        self.GPU_lbl = Label(win, text = 'Use GPU')
+        self.GPU_lbl.place(x=100, y=325)
+        self.ck1 = IntVar()
+        self.GPU_chk = Checkbutton(win, variable = self.ck1)
+        self.GPU_chk.place(x=250, y=325)
 
         self.predc_btn = Button(win, text='Predict', command=self.predict)
-        self.predc_btn.place(x=100, y=350)
+        self.predc_btn.place(x=100, y=400)
         self.train_btn = Button(win, text='Train a New Model', command=self.open_train)
-        self.train_btn.place(x=300, y=350)
+        self.train_btn.place(x=300, y=400)
+
     def browseDir(self):
         filename = filedialog.askdirectory(initialdir = "/",
                                           title = "Select a Directory",)
@@ -44,21 +63,49 @@ class mainWindow:
                                           title = "Select a Directory",)
         self.model_lb.configure(text="Selected Model: "+filename)
         self.settings['model'] = filename
+
     def predict(self):
+        self.update_param()
         meta_file = open(self.settings['model'][:-3] + '_metadata.txt', 'r')
         diam = int(meta_file.readline())
         preproc = int(meta_file.readline())
-        print(diam, preproc)
+        thres = int(meta_file.readline())
+        labels, masks = predict.run_pipeline(self.settings['img_path'], self.settings['type'], self.settings['model'], self.settings['input_ch'], self.settings['segmt_ch'], diam, preproc, self.settings['useGPU'])
+        print(masks[0].max())
+        if thres != -1:
+            for label in labels:
+                label[label > 0.5]=2
+                label[label < 0.5]=1
+        self.generate_imgs(labels, masks)
 
+
+
+    def generate_imgs(self, labels, masks):
+        img_count = 0
+        new_masks = []
+        images_lst = [file for file in os.listdir(self.settings['img_path'])
+                        if file.endswith(self.settings['type'])]
+        for mask in masks:
+            new_mask = np.zeros(mask.shape)
+            label = labels[img_count]
+            for cell_id in range(1,int(mask.max())):
+                new_mask[mask==cell_id] = label[cell_id-1]
+            output_filename = images_lst[img_count][:-4] + '_prediction.tif'
+            imwrite(output_filename, new_mask)
+            img_count = img_count + 1
+
+
+    def update_param(self):
+        self.settings['type'] = str(self.ftype_en.get())
+        self.settings['input_ch'] = int(self.input_ent.get())
+        self.settings['segmt_ch'] = int(self.segmt_ent.get())
+        self.settings['useGPU'] = bool(self.ck1.get())
     def open_train(self):
         train_win = Toplevel()
         tr_window = training_window(train_win)
         train_win.title('Train a New Model')
         train_win.geometry("700x400+10+10")
 
-# class prediction_window:
-#     def __init__(self, wind):
-#         self.
 
 class training_window:
     def __init__(self, wind):
@@ -185,5 +232,5 @@ class progresswin:
 window=Tk()
 mywin=mainWindow(window)
 window.title('Deep Learning Cell Classifier Trainer')
-window.geometry("500x400+10+10")
+window.geometry("500x500+10+10")
 window.mainloop()
