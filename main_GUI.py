@@ -246,6 +246,8 @@ def check_package_installation():
     if missing:
         print('Required packages not installed. Exiting...')
         sys.exit()
+    else:
+        print('All packages are present. Opening the GUI...')
 
 check_package_installation()
 
