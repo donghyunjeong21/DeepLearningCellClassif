@@ -236,8 +236,7 @@ def check_package_installation():
                          'sklearn',
                          'tensorflow',
                          'keras',
-                         'torch',
-                         'magma'
+                         'torch'
     ]
     missing = False
     for package in packages_required:
