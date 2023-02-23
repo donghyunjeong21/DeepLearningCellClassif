@@ -43,7 +43,7 @@ Initialize the program. Click "Train your own model" button. A new page will ope
 
 Select the relevant parameters: 
 
-Choose the channel to be used as input to the model. This will be the channel the model looks at to predict cell characteristics. 
+Choose the channel to be used as input to the model. This will be the channel the model looks at to predict cell characteristics. (NOTE: all channels are 0-indexed. this means first channel is referred to as 0)
 
 Choose the ground truth channel. This is most likely a fluorescent image channel whose intensity corresponds to the characteristic of the cell you're trying to predict. 
 
