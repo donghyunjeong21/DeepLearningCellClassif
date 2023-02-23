@@ -4,10 +4,12 @@ import segment
 import generate_model
 import predict
 import os
+import sys
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from tifffile import imwrite
+import importlib.util
 
 class mainWindow:
     def __init__(self, win):
@@ -226,8 +228,27 @@ class progresswin:
         file.write(str(self.settings['useGPU']) + '\n')
         file.write(datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n')
 
+def check_package_installation():
+    packages_required = ['numpy',
+                         'matplotlib.pyplot',
+                         'cellpose',
+                         'skimage',
+                         'sklearn',
+                         'tensorflow',
+                         'keras',
+                         'torch',
+                         'magma'
+    ]
+    missing = False
+    for package in packages_required:
+        if importlib.util.find_spec(package)==None:
+            print(package + ' is not installed')
+            missing = True
+    if missing:
+        print('Required packages not installed. Exiting...')
+        sys.exit()
 
-
+check_package_installation()
 
 window=Tk()
 mywin=mainWindow(window)
