@@ -42,12 +42,19 @@ Place all your images to be trained into a single directory. These should all ha
 Initialize the program. Click "Train your own model" button. A new page will open. Select the directory that contains the training images and type the file type, exluding the period (i.e. tif instead of .tif).
 
 Select the relevant parameters: 
+
 Choose the channel to be used as input to the model. This will be the channel the model looks at to predict cell characteristics. 
+
 Choose the ground truth channel. This is most likely a fluorescent image channel whose intensity corresponds to the characteristic of the cell you're trying to predict. 
+
 Choose the segmentation channel. This is an optional fluorescent channel that can be used to segment the cells. This can be useful if your cells are particularly difficult to segment or the image quality in the input channel is bad. Type -1 to indicate no segmentation channel, in which case the input channel will be used for segmentation. 
+
 Use GPU: click to use GPU. Must be set up to use relevant packages with GPU. This is strongly suggested.
+
 Cell diameter: Estimated diameter of your cell in number of pixels. 
+
 Threshold: for binary classification, select the average intensity level in the fluorescent channel that will classify the cell as positive. For continuous prediction, input -1. 
+
 Model name: name of the model to be saved. 
 
 Press the "Train" button to initiate training. The program will notify you of the number of cells it identified across all the training images. If the threshold value was supplied, it will indicate how many of these cells are positively labeled. If this is satisfactory, press "Continue."
