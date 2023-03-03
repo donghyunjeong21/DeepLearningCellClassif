@@ -203,6 +203,8 @@ class progresswin:
         self.data_x = data_x
         self.data_y = data_y
         self.settings = settings
+        self.text = StringVar()
+        self.text.set('')
 
         self.label1 = Label(Topl, text = 'We identified '+str(cellCount) + ' cells.')
         self.label1.place(x=20, y=100)
@@ -227,6 +229,8 @@ class progresswin:
         file.write(str(self.settings['segmt']) + '\n')
         file.write(str(self.settings['useGPU']) + '\n')
         file.write(datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n')
+
+
 
 def check_package_installation():
     packages_required = ['numpy',
