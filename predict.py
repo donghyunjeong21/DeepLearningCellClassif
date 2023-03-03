@@ -33,14 +33,14 @@ def dimension_compat(im):
     return im
 
 def generate_segments(bf_img, sg_img = 0, use_GPU = False, diameter = 20):
-    model = models.Cellpose(gpu=use_GPU, model_type = 'cyto')
+    model = models.Cellpose(gpu=use_GPU, model_type = 'cyto2', device=torch.device('cuda'))
     segment_bf = []
 
     if sg_img != []:
         segment_img = sg_img
     else:
         segment_img = bf_img
-    mask, flows, styles, diams = model.eval(segment_img, diameter=diameter, flow_threshold=0.6, channels=[0,0])
+    mask, flows, styles, diams = model.eval(segment_img, diameter=diameter, flow_threshold=0.2, channels=[0,0])
 
     maxnum_cell = mask.max()
     bf_img = add_padding(bf_img, int(diameter*1.5))
