@@ -73,12 +73,16 @@ class mainWindow:
         preproc = int(meta_file.readline())
         thres = int(meta_file.readline())
         labels, masks = predict.run_pipeline(self.settings['img_path'], self.settings['type'], self.settings['model'], self.settings['input_ch'], self.settings['segmt_ch'], diam, preproc, self.settings['useGPU'])
-        print(masks[0].max())
+
         if thres != -1:
             for label in labels:
                 label[label > 0.5]=2
                 label[label < 0.5]=1
         self.generate_imgs(labels, masks)
+        poscount = np.count_nonzero(np.where(label==2, 1, 0))
+        negcount = np.count_nonzero(np.where(label==1, 1, 0))
+        print('Prediction Complete. Output was saved to supplied directory.')
+        print('We identified ' + str(poscount) + ' positive cells and '+ str(negcount) + ' negative cells, for a total of ' + str(poscount+negcount) + ' cells.')
 
 
 
