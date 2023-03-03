@@ -12,6 +12,10 @@ import os
 import matplotlib.pyplot as plt
 import pathlib
 from skimage import io
+import torch
+
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
 # Function to generate a list of images to be pulled from user-selected directory.
 # Takes in the following: path to input file in str type, file type in str, and channel numbers
@@ -52,7 +56,7 @@ def preprocessing(imgs, type_of_preprocess):
 # Pixels in each segment that is not part of that cell is set to 0
 def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter = 20):
     masks = []
-    model = models.Cellpose(gpu=use_GPU, model_type = 'cyto')
+    model = models.Cellpose(gpu=use_GPU, model_type = 'cyto2', device=torch.device('cuda'))
     segment_bf = []
     segment_fl = []
 
@@ -63,7 +67,7 @@ def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter 
             segment_img = sg_imgs[i]
         else:
             segment_img = bf_img
-        mask, flows, styles, diams = model.eval(segment_img, diameter=diameter, flow_threshold=0.6, channels=[0,0])
+        mask, flows, styles, diams = model.eval(segment_img, diameter = None, flow_threshold=0.2, channels=[0,0])
         # masks.append(mask)
         maxnum_cell = mask.max()
         bf_img = add_padding(bf_img, int(diameter*1.5))
@@ -80,7 +84,6 @@ def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter 
             max_indy = int(y.min()+diameter*1.5)
             segment_bf.append(bf_img[min_indx:max_indx, min_indy:max_indy])
             segment_fl.append(np.multiply(fl_img[min_indx:max_indx, min_indy:max_indy], bin_mask[min_indx:max_indx, min_indy:max_indy]))
-
     return segment_bf, segment_fl, len(segment_bf)
 
 # A function to add padding to edges to make sure all output is of same dimension
@@ -101,9 +104,11 @@ def generate_labels(segment_fl, threshold = -1):
     label = np.zeros(len(segment_fl))
     for i in range(len(segment_fl)):
         label[i] = np.sum(segment_fl[i])/np.count_nonzero(segment_fl[i])
+    print(label)
     if threshold != -1:
         label[label < threshold] = 0
         label[label >= threshold] = 1
+
     return label
 
 def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, threshold, preproc):
