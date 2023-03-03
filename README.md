@@ -26,9 +26,9 @@ Scikit-image >= 0.19.3
 
 Scikit-learn >= 1.2.1
 
-Tensorflow >= 2.11.0
+Tensorflow == 2.10.0
 
-Keras >= 2.11.0
+Keras == 2.10.0
 
 PyTorch (CUDA version if running with GPU) >= 1.13.1
 
