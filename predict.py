@@ -25,7 +25,9 @@ def generate_input_for_pred(path_str, file_type, input_ch, segmt_ch):
 
 def dimension_compat(im):
     shape = im.shape
-    if shape[0] < shape[2]:
+    if len(shape)==2:
+        im = np.expand_dims(im, axis = 2)
+    elif shape[0] < shape[2]:
         print('Your image looks like channel is listed first. Transposing...')
         im = np.transpose(im, axes = (1,2,0))
     return im
@@ -41,24 +43,27 @@ def generate_segments(bf_img, sg_img = 0, use_GPU = False, diameter = 20):
     mask, flows, styles, diams = model.eval(segment_img, diameter=diameter, flow_threshold=0.6, channels=[0,0])
 
     maxnum_cell = mask.max()
-    sgmt_dim = 2
-    bf_img = add_padding(bf_img, sgmt_dim*diameter)
-
+    bf_img = add_padding(bf_img, int(diameter*1.5))
+    mask = add_padding(mask, int(diameter*1.5))
     for j in range(1, maxnum_cell):
         x,y = np.where(mask==j)
-        bin_mask = add_padding(np.where(mask ==j, 1, 0), sgmt_dim*diameter)
-        xmin = x.min()
-        ymin = y.min()
-        segment_bf.append(np.multiply(bf_img[xmin:xmin+diameter*2,ymin:ymin+diameter*2], bin_mask[xmin:xmin+diameter*2,ymin:ymin+diameter*2]))
+        min_indx = int(x.min()-diameter/2)
+        max_indx = int(x.min()+diameter*1.5)
+        min_indy = int(y.min()-diameter/2)
+        max_indy = int(y.min()+diameter*1.5)
+        segment_bf.append(bf_img[min_indx:max_indx, min_indy:max_indy])
     return segment_bf, mask
 def add_padding(im, d):
     xdim, ydim = im.shape
     leftpad = np.zeros([xdim, d])
     y = np.append(im, leftpad, axis = 1)
+    y = np.append(leftpad, y, axis = 1)
     xdim, ydim = y.shape
     bottompad = np.zeros([d, ydim])
     z = np.append(y, bottompad, axis = 0)
+    z = np.append(bottompad, z, axis = 0)
     return z
+
 def run_model(segment_bf, model):
     chosen_model = keras.models.load_model(model)
     output = chosen_model.predict(segment_bf)
@@ -69,7 +74,10 @@ def run_pipeline(path_str, file_type, model_name, input_ch, segmt_ch, diam, prep
     masks = []
     labels = []
     for i in range(len(bf_imgs)):
-        segment_bf, mask = generate_segments(bf_imgs[i], sg_imgs[i], use_GPU = useGPU, diameter = diam)
+        if segmt_ch==-1:
+            segment_bf, mask = generate_segments(bf_imgs[i], [], use_GPU = useGPU, diameter = diam)
+        else:
+            segment_bf, mask = generate_segments(bf_imgs[i], sg_imgs[i], use_GPU = useGPU, diameter = diam)
         masks.append(mask)
         segment_bf = np.stack(segment_bf,axis=0)
         segment_bf = segment_bf.reshape(-1, diam*2, diam*2, 1)
