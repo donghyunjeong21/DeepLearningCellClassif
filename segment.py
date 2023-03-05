@@ -100,18 +100,13 @@ def add_padding(im, d):
 
 # Generates labels. If threshold = -1, then it gives mean intensity in truth channel.
 # If threshold is non- -1, then it labels segment as 0 if under threshold, 1 if over
-def generate_labels(segment_fl, threshold = -1):
+def generate_labels(segment_fl):
     label = np.zeros(len(segment_fl))
     for i in range(len(segment_fl)):
         label[i] = np.sum(segment_fl[i])/np.count_nonzero(segment_fl[i])
-    print(label)
-    if threshold != -1:
-        label[label < threshold] = 0
-        label[label >= threshold] = 1
-
     return label
 
-def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, threshold, preproc):
+def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diameter, preproc):
     if img_dir == 'current':
         img_dir = pathlib.Path(__file__).parent.resolve()
     bf_imgs, fl_imgs, sg_imgs = generate_imgs(img_dir, file_type = file_type, input_ch = input_ch, truth_ch = truth_ch, segmt_ch = segmt_ch)
@@ -119,6 +114,6 @@ def run_pipeline(img_dir, file_type, input_ch, truth_ch, segmt_ch, use_GPU, diam
     print('Imported the images. Segmenting them...')
     segment_bf, segment_fl, numcell = generate_segments(bf_imgs, fl_imgs, use_GPU = use_GPU, diameter = diameter)
     print('Segmented the images. Identified '+ str(numcell) + ' cells across all the supplied images. Generating labels...')
-    label = generate_labels(segment_fl, threshold = threshold)
+    label = generate_labels(segment_fl)
     print('Generated labels. Training model now...')
     return segment_bf, label
