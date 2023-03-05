@@ -115,7 +115,7 @@ class mainWindow:
 
 class training_window:
     def __init__(self, wind):
-        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':20, 'threshold':-1,'preproc':0,'modelName':'untitled'}
+        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':20, 'preproc':0,'modelName':'untitled'}
         self.explr_btn = Button(wind, text = "Browse Directory", command = self.browseFiles)
         self.explr_btn.place(x=100, y=25)
         self.explr_lbl = Label(wind, text = '/')
@@ -151,15 +151,10 @@ class training_window:
         self.diam_ent = Entry(wind, width = 3)
         self.diam_ent.place(x=200, y=175)
 
-        self.thrsh_lbl = Label(wind, text = 'Threshold for Positive Label')
-        self.thrsh_lbl.place(x=20, y=200)
-        self.thrsh_ent = Entry(wind, width = 8)
-        self.thrsh_ent.place(x=200, y=200)
-
         self.prepr_lbl = Label(wind, text = 'Preprocessor type')
-        self.prepr_lbl.place(x=20, y=225)
+        self.prepr_lbl.place(x=20, y=200)
         self.prepr_ent = Entry(wind, width = 3)
-        self.prepr_ent.place(x=200, y=225)
+        self.prepr_ent.place(x=200, y=200)
 
         self.model_lbl = Label(wind, text = 'Name for trained model?')
         self.model_lbl.place(x=20, y=250)
@@ -186,34 +181,46 @@ class training_window:
         self.settings['segmt'] = int(self.segmt_ent.get())
         self.settings['useGPU'] = bool(self.ck1.get())
         self.settings['diam'] = int(self.diam_ent.get())
-        self.settings['threshold'] = int(self.thrsh_ent.get())
         self.settings['preproc'] = int(self.prepr_ent.get())
         self.settings['modelName'] = str(self.model_ent.get())
     def open_segmt(self):
         self.update_param()
-        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['threshold'], self.settings['preproc'])
+        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['preproc'])
         cellCount = data_y.shape[0]
-        pos_cellcount = 0
-        if self.settings['threshold'] != -1:
-            pos_cellcount = np.count_nonzero(data_y)
         tl = Toplevel()
-        pg_window = progresswin(tl, cellCount, pos_cellcount, data_x, data_y, self.settings)
+        pg_window = progresswin(tl, cellCount, data_x, data_y, self.settings)
         tl.title('Training model')
         tl.geometry('300x300')
+        self.generate_histogram(data_y)
 
+    def generate_histogram(self, data):
+        plt.hist(data, bins = 100)
+        plt.xlabel('Mean Fluorescence Intensity')
+        plt.ylabel('Cell Count')
+        plt.show()
 
 class progresswin:
-    def __init__(self, Topl, cellCount, pos_cellcount, data_x, data_y, settings):
+    def __init__(self, Topl, cellCount, data_x, data_y, settings):
         self.data_x = data_x
         self.data_y = data_y
         self.settings = settings
         self.text = StringVar()
         self.text.set('')
+        self.thres = 0
 
         self.label1 = Label(Topl, text = 'We identified '+str(cellCount) + ' cells.')
         self.label1.place(x=20, y=100)
-        self.label2 = Label(Topl, text = 'Of these,  '+str(pos_cellcount) + ' cells were positive.')
+        self.label2 = Label(Topl, text = 'Choose threshold to see positive count')
         self.label2.place(x=20, y=125)
+
+        self.thres_ent = Entry(Topl, width = 5)
+        self.thres_ent.place(x=250, y=150)
+
+        self.label3 = Label(Topl, text = 'Threshold for binary classification')
+        self.label3.place(x=20, y=150)
+
+        self.count_btn = Button(Topl, text='Count', command = self.count)
+        self.count_btn.place(x=20, y=175)
 
         self.cont_btn = Button(Topl, text='Continue', command=self.run)
         self.cont_btn.place(x=50, y=200)
@@ -221,19 +228,39 @@ class progresswin:
         self.exit_btn = Button(Topl, text='Exit',command=Topl.destroy)
         self.exit_btn.place(x=200, y=200)
 
+    def count(self):
+        self.update_param()
+        if self.thres != -1:
+            data_bin = self.binarize_label(self.data_y, self.thres)
+        poscount = np.count_nonzero(data_bin)
+        self.label2.config(text = 'Of these, ' +str(poscount) + ' cells were positive.')
+
     def run(self):
-        x = generate_model.init_model(self.settings['diam']*2, self.settings['threshold'])
+        self.update_param()
+        if self.thres != -1:
+            self.data_y = self.binarize_label(self.data_y, self.thres)
+        x = generate_model.init_model(self.settings['diam']*2, self.thres)
         generate_model.fit_model(x, self.data_x, self.data_y, self.settings['diam']*2, self.settings['modelName'])
         file = open(self.settings['modelName'] + '_metadata.txt', 'w')
         file.write(str(self.settings['diam']) + '\n')
         file.write(str(self.settings['preproc']) + '\n')
-        file.write(str(self.settings['threshold']) + '\n')
+        file.write(str(self.thres) + '\n')
         file.write(str(self.settings['input']) + '\n')
         file.write(str(self.settings['truth']) + '\n')
         file.write(str(self.settings['segmt']) + '\n')
         file.write(str(self.settings['useGPU']) + '\n')
         file.write(datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n')
 
+    def update_param(self):
+        self.thres = int(self.thres_ent.get())
+    def binarize_label(self, y, t):
+        x = np.zeros(y.shape[0])
+        for i in range(y.shape[0]):
+            if y[i] >= t:
+                x[i] = 1
+            else:
+                x[i] = 0
+        return x
 
 
 def check_package_installation():
