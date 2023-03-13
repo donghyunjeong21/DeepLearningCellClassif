@@ -96,7 +96,7 @@ class mainWindow:
             label = labels[img_count]
             for cell_id in range(1,int(mask.max())):
                 new_mask[mask==cell_id] = label[cell_id-1]
-            output_filename = images_lst[img_count][:-4] + '_prediction.tif'
+            output_filename = self.settings['img_path'] + '/' + images_lst[img_count][:-4] + '_prediction.tif'
             imwrite(output_filename, new_mask)
             img_count = img_count + 1
 
