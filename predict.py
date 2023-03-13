@@ -8,6 +8,7 @@ import pathlib
 from skimage import io
 import segment
 from tensorflow import keras
+import torch
 
 def generate_input_for_pred(path_str, file_type, input_ch, segmt_ch):
     images_lst = [file for file in os.listdir(path_str)
@@ -22,6 +23,11 @@ def generate_input_for_pred(path_str, file_type, input_ch, segmt_ch):
             sg_imgs.append(im[:,:,segmt_ch])
     return bf_imgs, sg_imgs
 
+def normalize_bf(img):
+    avg = np.mean(img)
+    img = img - avg
+    std = np.std(img)
+    return img/std
 
 def dimension_compat(im):
     shape = im.shape
@@ -43,7 +49,7 @@ def generate_segments(bf_img, sg_img = 0, use_GPU = False, diameter = 20):
     mask, flows, styles, diams = model.eval(segment_img, diameter=diameter, flow_threshold=0.2, channels=[0,0])
 
     maxnum_cell = mask.max()
-    bf_img = add_padding(bf_img, int(diameter*1.5))
+    bf_img = add_padding(normalize_bf(bf_img), int(diameter*1.5))
     mask = add_padding(mask, int(diameter*1.5))
     for j in range(1, maxnum_cell):
         x,y = np.where(mask==j)
