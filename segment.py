@@ -36,7 +36,15 @@ def generate_imgs(path_str, file_type = '.tif', input_ch = 0, truth_ch = 1, segm
         fl_imgs.append(im[:,:,truth_ch])
         if segmt_ch != -1:
             sg_imgs.append(im[:,:,segmt_ch])
+
     return bf_imgs, fl_imgs, sg_imgs
+
+def normalize_bf(img):
+    avg = np.mean(img)
+    img = img - avg
+    std = np.std(img)
+    return img/std
+
 
 # Checks if dimensions are comptatible, and if not, transposes
 def dimension_compat(im):
@@ -70,7 +78,7 @@ def generate_segments(bf_imgs, fl_imgs, sg_imgs = [], use_GPU = False, diameter 
         mask, flows, styles, diams = model.eval(segment_img, diameter = None, flow_threshold=0.2, channels=[0,0])
         # masks.append(mask)
         maxnum_cell = mask.max()
-        bf_img = add_padding(bf_img, int(diameter*1.5))
+        bf_img = add_padding(normalize_bf(bf_img), int(diameter*1.5))
         fl_img = add_padding(fl_img, int(diameter*1.5))
         mask = add_padding(mask, int(diameter*1.5))
 
