@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tifffile import imwrite
 import importlib.util
+import tensorflow as tf
 
 class mainWindow:
     def __init__(self, win):
@@ -239,6 +240,7 @@ class progresswin:
         self.update_param()
         if self.thres != -1:
             self.data_y = self.binarize_label(self.data_y, self.thres)
+        print(self.data_y)
         x = generate_model.init_model(self.settings['diam']*2, self.thres)
         generate_model.fit_model(x, self.data_x, self.data_y, self.settings['diam']*2, self.settings['modelName'])
         file = open(self.settings['modelName'] + '_metadata.txt', 'w')
@@ -257,9 +259,9 @@ class progresswin:
         x = np.zeros(y.shape[0])
         for i in range(y.shape[0]):
             if y[i] >= t:
-                x[i] = 1
+                x[i] = int(1)
             else:
-                x[i] = 0
+                x[i] = int(0)
         return x
 
 
