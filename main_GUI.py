@@ -116,7 +116,7 @@ class mainWindow:
 
 class training_window:
     def __init__(self, wind):
-        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':20, 'preproc':0,'modelName':'untitled'}
+        self.settings = {'path':'current', 'type':'.tif', 'input':0, 'truth':1, 'segmt':-1, 'useGPU':False, 'diam':-1, 'preproc':0,'modelName':'untitled','save_segs':False}
         self.explr_btn = Button(wind, text = "Browse Directory", command = self.browseFiles)
         self.explr_btn.place(x=100, y=25)
         self.explr_lbl = Label(wind, text = '/')
@@ -147,6 +147,12 @@ class training_window:
         self.GPU_chk = Checkbutton(wind, variable = self.ck1)
         self.GPU_chk.place(x=200, y=150)
 
+        self.saveseg = Label(wind, text = 'Save individual segments?')
+        self.saveseg.place(x=250, y=150)
+        self.ck2 = IntVar()
+        self.savesegck = Checkbutton(wind, variable = self.ck2)
+        self.savesegck.place(x=450, y=150)
+
         self.diam_lbl = Label(wind, text = 'Estimated Cell Diameter')
         self.diam_lbl.place(x=50, y=175)
         self.diam_ent = Entry(wind, width = 3)
@@ -165,8 +171,12 @@ class training_window:
         self.train_btn = Button(wind, text='Train Model', command=self.open_segmt)
         self.train_btn.place(x=200, y=300)
         self.exit_btn = Button(wind, text='Exit', command=wind.destroy)
-        self.exit_btn.place(x=500, y=300)
+        self.exit_btn.place(x=400, y=300)
 
+        self.train_btn = Button(wind, text='Advanced', command=self.open_adv)
+        self.train_btn.place(x=300, y=300)
+
+        self.adv_settings = {'epoch_s':500, 'learn_r':0.00001, 'batch_s':16}
 
     def browseFiles(self):
         filename = filedialog.askdirectory(initialdir = "/",
@@ -184,15 +194,22 @@ class training_window:
         self.settings['diam'] = int(self.diam_ent.get())
         self.settings['preproc'] = int(self.prepr_ent.get())
         self.settings['modelName'] = str(self.model_ent.get())
+        self.settings['save_segs'] = bool(self.ck2.get())
     def open_segmt(self):
         self.update_param()
-        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['preproc'])
+        data_x, data_y = segment.run_pipeline(self.settings['path'], self.settings['type'], self.settings['input'], self.settings['truth'], self.settings['segmt'], self.settings['useGPU'], self.settings['diam'], self.settings['preproc'], self.settings['save_segs'])
         cellCount = data_y.shape[0]
         tl = Toplevel()
-        pg_window = progresswin(tl, cellCount, data_x, data_y, self.settings)
+        pg_window = progresswin(tl, cellCount, data_x, data_y, self.settings, self.adv_settings)
         tl.title('Training model')
-        tl.geometry('300x300')
+        tl.geometry('500x500')
         self.generate_histogram(data_y)
+    def open_adv(self):
+        toplvl = Toplevel()
+        adv_window = advanced_window(toplvl)
+        self.adv_settings = adv_window.get_adv_set()
+        toplvl.title('Advanced Settings')
+        toplvl.geometry('500x500')
 
     def generate_histogram(self, data):
         plt.hist(data, bins = 100)
@@ -200,11 +217,47 @@ class training_window:
         plt.ylabel('Cell Count')
         plt.show()
 
+class advanced_window:
+    def __init__(self, wind):
+        self.adv_set = {'epoch_s':500, 'learn_r':0.00001, 'batch_s':16 }
+
+        self.epoch_lbl = Label(wind, text='Training Duration')
+        self.epoch_lbl.place(x=100, y=25)
+        self.learn_lbl = Label(wind, text='Learning Rate')
+        self.learn_lbl.place(x=100, y=50)
+        self.batch_lbl = Label(wind, text='Batch size')
+        self.batch_lbl.place(x=100, y=75)
+
+        self.epoch_ent = Entry(wind, width = 8)
+        self.epoch_ent.place(x=200, y=25)
+        self.learn_ent = Entry(wind, width = 8)
+        self.learn_ent.place(x=200, y=50)
+        self.batch_ent = Entry(wind, width = 8)
+        self.batch_ent.place(x=200, y=75)
+
+
+        self.cont_btn = Button(wind, text='Save', command=self.update_adv_param)
+        self.cont_btn.place(x=100, y=200)
+
+        self.exit_btn = Button(wind, text='Exit',command=wind.destroy)
+        self.exit_btn.place(x=200, y=200)
+
+    def update_adv_param(self):
+        self.adv_set['epoch_s'] = int(self.epoch_ent.get())
+        self.adv_set['learn_r'] = float(self.learn_ent.get())
+        self.adv_set['batch_s'] = int(self.batch_ent.get())
+        wind.destroy()
+
+    def get_adv_set(self):
+        return self.adv_set
+
 class progresswin:
-    def __init__(self, Topl, cellCount, data_x, data_y, settings):
+    def __init__(self, Topl, cellCount, data_x, data_y, settings, adv_set):
         self.data_x = data_x
         self.data_y = data_y
+        self.input_size = data_x[0].shape[0]
         self.settings = settings
+        self.adv_sett = adv_set
         self.text = StringVar()
         self.text.set('')
         self.thres = 0
@@ -241,14 +294,13 @@ class progresswin:
         if self.thres != -1:
             self.data_y = self.binarize_label(self.data_y, self.thres)
         print(self.data_y)
-        x = generate_model.init_model(self.settings['diam']*2, self.thres)
-        generate_model.fit_model(x, self.data_x, self.data_y, self.settings['diam']*2, self.settings['modelName'])
+        x = generate_model.init_model(self.input_size, self.thres, self.adv_sett['learn_r'])
+        generate_model.fit_model(x, self.data_x, self.data_y, self.input_size, self.settings['modelName'], self.adv_sett['epoch_s'], self.adv_sett['batch_s'])
         file = open(self.settings['modelName'] + '_metadata.txt', 'w')
         file.write(str(self.settings['diam']) + '\n')
         file.write(str(self.settings['preproc']) + '\n')
         file.write(str(self.thres) + '\n')
         file.write(str(self.settings['input']) + '\n')
-        file.write(str(self.settings['truth']) + '\n')
         file.write(str(self.settings['segmt']) + '\n')
         file.write(str(self.settings['useGPU']) + '\n')
         file.write(datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n')
