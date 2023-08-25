@@ -14,25 +14,29 @@ This is a machine learning tool that allows users to easily train their own AI a
 
 Download all the script files in this directory onto a local directory. The files must remain in the same directory. On command line, run main_GUI.py, and the user interface will open. Alternatively, the code can be run from command line by calling on main_driver.py. 
 
-The program requires the following packages that may need to be installed in addition to standard Python 3.10.10 libraries:
+The program requires the following packages that may need to be installed in addition to standard Python 3.10.10 libraries (Python >3.10 might lead to compatibility issues):
 
-NumPy >= 1.22.3
+NumPy == 1.22.3
 
-Matplotlib >= 3.7.0
+Matplotlib == 3.7.0
 
-Cellpose >= 2.0.5
+Cellpose == 2.0.5
 
-Scikit-image >= 0.19.3
+Scikit-image == 0.19.3
 
-Scikit-learn >= 1.2.1
+Scikit-learn == 1.2.1
 
 Tensorflow == 2.10.0
 
 Keras == 2.10.0
 
-PyTorch (CUDA version if running with GPU) >= 1.13.1
+PyTorch (CUDA version if running with GPU) == 1.13.1
 
-Imageio >= 2.25.1
+Imageio == 2.25.1
+
+CUDA toolkit == 11.7.1
+
+CUdnn = 8.2.1
 
 
 <b>Training your own model:</b>
